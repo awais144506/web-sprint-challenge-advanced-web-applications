@@ -13,7 +13,7 @@ export default function App() {
   // ✨ MVP can be achieved with these states
   const [message, setMessage] = useState('')
   const [articles, setArticles] = useState([])
-  const [currentArticleId, setCurrentArticleId] = useState()
+  const [currentArticleId, setCurrentArticleId] = useState(null)
   const [spinnerOn, setSpinnerOn] = useState(false)
   const token = localStorage.getItem("token");
   // ✨ Research `useNavigate` in React Router v.6
@@ -26,23 +26,12 @@ export default function App() {
   }
 
   const logout = () => {
-    // ✨ implement
-    // If a token is in local storage it should be removed,
-    // and a message saying "Goodbye!" should be set in its proper state.
-    // In any case, we should redirect the browser back to the login screen,
-    // using the helper above.
     localStorage.removeItem("token")
     redirectToLogin()
     setMessage("Goodbye!")
   }
 
   const login = async ({ username, password }) => {
-    // ✨ implement
-    // We should flush the message state, turn on the spinner
-    // and launch a request to the proper endpoint.
-    // On success, we should set the token to local storage in a 'token' key,
-    // put the server success message in its proper state, and redirect
-    // to the Articles screen. Don't forget to turn off the spinner!
     setSpinnerOn(true);
     setMessage("")
     try {
@@ -62,17 +51,17 @@ export default function App() {
     setSpinnerOn(true);
     setMessage("");
     try {
-      
+
       const response = await axios.get(articlesUrl, {
         headers: { Authorization: token },
       });
-   
-      setArticles(response.data.articles); 
-      setMessage(response.data.message);  
+
+      setArticles(response.data.articles);
+      setMessage(response.data.message);
 
     } catch (error) {
       if (error?.response?.status === 401) {
-        logout();  
+        logout();
       } else {
         setMessage("Failed to load articles. Please try again.");
       }
@@ -94,31 +83,53 @@ export default function App() {
           text: article.text,
           topic: article.topic,
         },
-        { headers: { Authorization: token } } 
+        { headers: { Authorization: token } }
       );
-  
-    
+
+
       const newArticle = response.data.article;
       setArticles((prevArticles) => [...prevArticles, newArticle]);
-      setMessage(response.data.message);    
-  
+      setMessage(response.data.message);
+
     } catch (error) {
       console.log("There is an error in posting", error);
-  
-     
+
+
       const errorMessage = error.response?.data?.message || "Failed to post article. Please try again.";
       setMessage(errorMessage);
-  
+
     } finally {
       setSpinnerOn(false);
     }
   };
-  
 
-  const updateArticle = ({ article_id, article }) => {
-    // ✨ implement
-    // You got this!
-  }
+
+  const updateArticle = async (article_id, article) => {
+    setSpinnerOn(true);
+    setMessage("");
+
+    try {
+      const response = await axios.put(
+        `${articlesUrl}/${article_id}`,
+        article,
+        { headers: { Authorization: token } }
+      );
+
+      // Update articles state
+      setArticles(prevArticles =>
+        prevArticles.map(a => a.article_id === article_id ? response.data.article : a)
+      );
+      setMessage(response.data.message);
+    } catch (error) {
+      console.log("There is an error while updating", error);
+      const errorMessage = error.response?.data?.message || "Failed to update article. Please try again.";
+      setMessage(errorMessage);
+    } finally {
+      setSpinnerOn(false);
+      setCurrentArticleId(null); // Clear the current article ID after update
+    }
+  };
+
 
 
 
@@ -127,8 +138,8 @@ export default function App() {
       // Make the DELETE request
       const response = await axios.delete(`${articlesUrl}/${article_id}`, {
         headers: { Authorization: token },
-      });  
-      const successMessage = response.data.message; 
+      });
+      const successMessage = response.data.message;
       setArticles(prevArticles => prevArticles.filter(article => article.article_id !== article_id));
       setMessage(successMessage);
     } catch (error) {
@@ -139,39 +150,33 @@ export default function App() {
   };
 
   return (
-    // ✨ fix the JSX: `Spinner`, `Message`, `LoginForm`, `ArticleForm` and `Articles` expect props ❗
     <>
-      <Spinner
-        on={spinnerOn}
-      />
-      <Message
-        message={message}
-      />
+      <Spinner on={spinnerOn} />
+      <Message message={message} />
       <button id="logout" onClick={logout}>Logout from app</button>
-      <div id="wrapper" style={{ opacity: spinnerOn ? "0.25" : "1" }}> {/* <-- do not change this line */}
+      <div id="wrapper" style={{ opacity: spinnerOn ? "0.25" : "1" }}>
         <h1>Advanced Web Applications</h1>
         <nav>
           <NavLink id="loginScreen" to="/">Login</NavLink>
           <NavLink id="articlesScreen" to="/articles">Articles</NavLink>
         </nav>
         <Routes>
-          <Route path="/" element={<LoginForm
-            login={login}
-            redirectToLogin={redirectToLogin}
-            redirectToArticles={redirectToArticles}
-            logout={logout}
-          />} />
+          <Route path="/" element={<LoginForm login={login} redirectToLogin={redirectToLogin} redirectToArticles={redirectToArticles} logout={logout} />} />
           <Route path="articles" element={
             <>
-              <ArticleForm 
-              postArticle={postArticle}
-              updateArticle={updateArticle}
+              <ArticleForm
+                postArticle={postArticle}
+                updateArticle={updateArticle}
+                currentArticle={currentArticleId} // Pass the actual article object
+                setCurrentArticle={setCurrentArticleId} // To reset the current article on cancel
               />
+
               <Articles
                 articles={articles}
                 getArticles={getArticles}
                 deleteArticle={deleteArticle}
                 updateArticle={updateArticle}
+                setCurrentArticle={setCurrentArticleId} // Pass down setCurrentArticle for editing
               />
             </>
           } />
@@ -179,5 +184,5 @@ export default function App() {
         <footer>Bloom Institute of Technology 2024</footer>
       </div>
     </>
-  )
+  );
 }

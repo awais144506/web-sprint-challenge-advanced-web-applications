@@ -4,7 +4,7 @@ import PT from 'prop-types'
 
 export default function Articles(props) {
   // ✨ where are my props? Destructure them here
-  const { getArticles, articles, deleteArticle, updateArticle } = props;
+  const { getArticles, articles, deleteArticle,setCurrentArticle} = props;
   
   // Check for token
   const token = localStorage.getItem("token");
@@ -36,7 +36,7 @@ export default function Articles(props) {
                   <p>Topic: {art.topic}</p>
                 </div>
                 <div>
-                <button onClick={() => updateArticle(art.article_id,art)}>
+                <button onClick={() => setCurrentArticle(art)}>
                   Edit
                 </button>
                 <button onClick={() => deleteArticle(art.article_id)}>
