@@ -5,7 +5,7 @@ import LoginForm from './LoginForm'
 import Message from './Message'
 import ArticleForm from './ArticleForm'
 import Spinner from './Spinner'
-
+import axios from 'axios'
 const articlesUrl = 'http://localhost:9000/api/articles'
 const loginUrl = 'http://localhost:9000/api/login'
 
@@ -18,8 +18,12 @@ export default function App() {
 
   // ✨ Research `useNavigate` in React Router v.6
   const navigate = useNavigate()
-  const redirectToLogin = () => { /* ✨ implement */ }
-  const redirectToArticles = () => { /* ✨ implement */ }
+  const redirectToLogin = () => { /* ✨ implement */
+    navigate("/")
+  }
+  const redirectToArticles = () => { /* ✨ implement */
+    navigate("/articles")
+  }
 
   const logout = () => {
     // ✨ implement
@@ -27,18 +31,38 @@ export default function App() {
     // and a message saying "Goodbye!" should be set in its proper state.
     // In any case, we should redirect the browser back to the login screen,
     // using the helper above.
+    localStorage.removeItem("token")
+    redirectToLogin()
+    setMessage("Goodbye!")
   }
 
-  const login = ({ username, password }) => {
+  const login = async ({ username, password }) => {
     // ✨ implement
     // We should flush the message state, turn on the spinner
     // and launch a request to the proper endpoint.
     // On success, we should set the token to local storage in a 'token' key,
     // put the server success message in its proper state, and redirect
     // to the Articles screen. Don't forget to turn off the spinner!
+    setSpinnerOn(true);
+    setMessage("")
+    try {
+      // Make the async request to login
+      const { data } = await axios.post(loginUrl, { username, password });
+      // Store the token in local storage
+      localStorage.setItem("token", data.token);
+      // Redirect to the Articles screen
+      redirectToArticles();
+    } catch (err) {
+
+      console.error("Error logging in:", err);
+      setMessage("Failed to log in. Please check your username and password.");
+    } finally {
+      // Turn off the spinner, regardless of success or failure
+      setSpinnerOn(false);
+    }
   }
 
-  const getArticles = () => {
+  const getArticles = async () => {
     // ✨ implement
     // We should flush the message state, turn on the spinner
     // and launch an authenticated request to the proper endpoint.
@@ -47,6 +71,30 @@ export default function App() {
     // If something goes wrong, check the status of the response:
     // if it's a 401 the token might have gone bad, and we should redirect to login.
     // Don't forget to turn off the spinner!
+    setSpinnerOn(true);
+    setMessage("");
+
+    const token = localStorage.getItem("token");
+    try {
+      // Make the request and wait for the response
+      const response = await axios.get(articlesUrl, {
+        headers: { Authorization:token },
+      });
+      // Assuming you have a state to hold articles
+      setArticles(response.data.articles);  // Set articles in state
+      setMessage(response.data.message);  // Success message
+
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        logout();  // Redirect if token has expired
+      } else {
+        setMessage("Failed to load articles. Please try again.");
+      }
+      console.error("Error fetching articles:", error);
+
+    } finally {
+      setSpinnerOn(false);
+    }
   }
 
   const postArticle = article => {
@@ -68,8 +116,12 @@ export default function App() {
   return (
     // ✨ fix the JSX: `Spinner`, `Message`, `LoginForm`, `ArticleForm` and `Articles` expect props ❗
     <>
-      <Spinner />
-      <Message />
+      <Spinner
+        on={spinnerOn}
+      />
+      <Message
+        message={message}
+      />
       <button id="logout" onClick={logout}>Logout from app</button>
       <div id="wrapper" style={{ opacity: spinnerOn ? "0.25" : "1" }}> {/* <-- do not change this line */}
         <h1>Advanced Web Applications</h1>
@@ -78,11 +130,19 @@ export default function App() {
           <NavLink id="articlesScreen" to="/articles">Articles</NavLink>
         </nav>
         <Routes>
-          <Route path="/" element={<LoginForm />} />
+          <Route path="/" element={<LoginForm
+            login={login}
+            redirectToLogin={redirectToLogin}
+            redirectToArticles={redirectToArticles}
+            logout={logout}
+          />} />
           <Route path="articles" element={
             <>
               <ArticleForm />
-              <Articles />
+              <Articles
+                articles={articles}
+                getArticles={getArticles}
+              />
             </>
           } />
         </Routes>
