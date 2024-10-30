@@ -72,7 +72,7 @@ export default function ArticleForm(props) {
         <option value="Node">Node</option>
       </select>
       <div className="button-group">
-        <button disabled={isDisabled()} id="submitArticle">{currentArticle ? "Edit" : "Submit"}</button>
+        <button disabled={isDisabled()} id="submitArticle">Submit</button>
         <button type="button" onClick={onReset}>Cancel</button>
       </div>
     </form>
