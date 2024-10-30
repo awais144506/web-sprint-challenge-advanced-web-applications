@@ -15,7 +15,7 @@ export default function App() {
   const [articles, setArticles] = useState([])
   const [currentArticleId, setCurrentArticleId] = useState()
   const [spinnerOn, setSpinnerOn] = useState(false)
-
+  const token = localStorage.getItem("token");
   // ✨ Research `useNavigate` in React Router v.6
   const navigate = useNavigate()
   const redirectToLogin = () => { /* ✨ implement */
@@ -74,11 +74,11 @@ export default function App() {
     setSpinnerOn(true);
     setMessage("");
 
-    const token = localStorage.getItem("token");
+
     try {
       // Make the request and wait for the response
       const response = await axios.get(articlesUrl, {
-        headers: { Authorization:token },
+        headers: { Authorization: token },
       });
       // Assuming you have a state to hold articles
       setArticles(response.data.articles);  // Set articles in state
@@ -109,9 +109,27 @@ export default function App() {
     // You got this!
   }
 
-  const deleteArticle = article_id => {
-    // ✨ implement
-  }
+
+  
+  const deleteArticle = async (article_id) => {
+    try {
+      // Make the DELETE request
+      const response = await axios.delete(`${articlesUrl}/${article_id}`, {
+        headers: { Authorization: token },
+      });  
+      // Assuming the server responds with a message
+      const successMessage = response.data.message; // Adjust this based on your server response
+      // Update the articles state to remove the deleted article
+      setArticles(prevArticles => prevArticles.filter(article => article.article_id !== article_id));
+      // Set the message state to the server response message
+      setMessage(successMessage);
+    } catch (error) {
+      console.error("Error deleting article:", error);
+      // Optionally check for specific error messages from the server
+      const errorMessage = error.response?.data?.message || "Failed to delete article. Please try again.";
+      setMessage(errorMessage);
+    }
+  };
 
   return (
     // ✨ fix the JSX: `Spinner`, `Message`, `LoginForm`, `ArticleForm` and `Articles` expect props ❗
@@ -142,6 +160,8 @@ export default function App() {
               <Articles
                 articles={articles}
                 getArticles={getArticles}
+                deleteArticle={deleteArticle}
+                updateArticle={updateArticle}
               />
             </>
           } />
