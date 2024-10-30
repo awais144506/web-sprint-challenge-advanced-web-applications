@@ -46,47 +46,33 @@ export default function App() {
     setSpinnerOn(true);
     setMessage("")
     try {
-      // Make the async request to login
       const { data } = await axios.post(loginUrl, { username, password });
-      // Store the token in local storage
       localStorage.setItem("token", data.token);
-      // Redirect to the Articles screen
       redirectToArticles();
     } catch (err) {
-
       console.error("Error logging in:", err);
       setMessage("Failed to log in. Please check your username and password.");
     } finally {
-      // Turn off the spinner, regardless of success or failure
+
       setSpinnerOn(false);
     }
   }
 
   const getArticles = async () => {
-    // ✨ implement
-    // We should flush the message state, turn on the spinner
-    // and launch an authenticated request to the proper endpoint.
-    // On success, we should set the articles in their proper state and
-    // put the server success message in its proper state.
-    // If something goes wrong, check the status of the response:
-    // if it's a 401 the token might have gone bad, and we should redirect to login.
-    // Don't forget to turn off the spinner!
     setSpinnerOn(true);
     setMessage("");
-
-
     try {
-      // Make the request and wait for the response
+      
       const response = await axios.get(articlesUrl, {
         headers: { Authorization: token },
       });
-      // Assuming you have a state to hold articles
-      setArticles(response.data.articles);  // Set articles in state
-      setMessage(response.data.message);  // Success message
+   
+      setArticles(response.data.articles); 
+      setMessage(response.data.message);  
 
     } catch (error) {
       if (error?.response?.status === 401) {
-        logout();  // Redirect if token has expired
+        logout();  
       } else {
         setMessage("Failed to load articles. Please try again.");
       }
@@ -97,12 +83,37 @@ export default function App() {
     }
   }
 
-  const postArticle = article => {
-    // ✨ implement
-    // The flow is very similar to the `getArticles` function.
-    // You'll know what to do! Use log statements or breakpoints
-    // to inspect the response from the server.
-  }
+  const postArticle = async (article) => {
+    setSpinnerOn(true);
+    setMessage("");
+    try {
+      const response = await axios.post(
+        articlesUrl,
+        {
+          title: article.title,
+          text: article.text,
+          topic: article.topic,
+        },
+        { headers: { Authorization: token } } 
+      );
+  
+    
+      const newArticle = response.data.article;
+      setArticles((prevArticles) => [...prevArticles, newArticle]);
+      setMessage(response.data.message);    
+  
+    } catch (error) {
+      console.log("There is an error in posting", error);
+  
+     
+      const errorMessage = error.response?.data?.message || "Failed to post article. Please try again.";
+      setMessage(errorMessage);
+  
+    } finally {
+      setSpinnerOn(false);
+    }
+  };
+  
 
   const updateArticle = ({ article_id, article }) => {
     // ✨ implement
@@ -110,22 +121,18 @@ export default function App() {
   }
 
 
-  
+
   const deleteArticle = async (article_id) => {
     try {
       // Make the DELETE request
       const response = await axios.delete(`${articlesUrl}/${article_id}`, {
         headers: { Authorization: token },
       });  
-      // Assuming the server responds with a message
-      const successMessage = response.data.message; // Adjust this based on your server response
-      // Update the articles state to remove the deleted article
+      const successMessage = response.data.message; 
       setArticles(prevArticles => prevArticles.filter(article => article.article_id !== article_id));
-      // Set the message state to the server response message
       setMessage(successMessage);
     } catch (error) {
       console.error("Error deleting article:", error);
-      // Optionally check for specific error messages from the server
       const errorMessage = error.response?.data?.message || "Failed to delete article. Please try again.";
       setMessage(errorMessage);
     }
@@ -156,7 +163,10 @@ export default function App() {
           />} />
           <Route path="articles" element={
             <>
-              <ArticleForm />
+              <ArticleForm 
+              postArticle={postArticle}
+              updateArticle={updateArticle}
+              />
               <Articles
                 articles={articles}
                 getArticles={getArticles}
